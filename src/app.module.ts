@@ -3,6 +3,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
+import { AuthModule } from './auth/auth.module.js';
+import { ChatModule } from './chat/chat.module.js';
+import { ConversationsModule } from './conversations/conversations.module.js';
+import { TenantsModule } from './tenants/tenants.module.js';
 
 @Module({
   imports: [
@@ -20,6 +24,10 @@ import { AppService } from './app.service.js';
         synchronize: config.get('DB_SYNCHRONIZE') === 'true',
       }),
     }),
+    AuthModule,
+    TenantsModule,
+    ConversationsModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],
