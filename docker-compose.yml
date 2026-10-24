@@ -1,0 +1,35 @@
+name: ai-bot-mock
+
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: ${DB_USER:-aibot}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-aibot}
+      POSTGRES_DB: ${DB_NAME:-aibot}
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    env_file: .env
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      PORT: 3001
+    ports:
+      - "${PORT:-3001}:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles: ["app"]
+
+volumes:
+  db-data:
