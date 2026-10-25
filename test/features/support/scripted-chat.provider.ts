@@ -1,13 +1,17 @@
-import type {
-  ChatProvider,
-  ChatProviderInput,
-  ChatProviderResult,
+import {
+  type ChatProvider,
+  type ChatProviderInput,
+  type ChatProviderResult,
+  RegisterChatProvider,
 } from '../../../src/chat/providers/chat-provider.js';
 
 /**
  * 受け入れテスト用の方式。シナリオで指定した通りに回答し、呼ばれた内容を記録する。
  * 方式ごとの実装（Dify / OpenAI）に依存せず、共通部分の振る舞いを確かめるために使う。
+ *
+ * テストでは MockChatProvider と差し替えるので、登録されるようにデコレーターを付ける。
  */
+@RegisterChatProvider()
 export class ScriptedChatProvider implements ChatProvider {
   readonly name = 'mock' as const;
   calls: ChatProviderInput[] = [];

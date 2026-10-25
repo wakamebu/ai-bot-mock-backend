@@ -2,15 +2,15 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Tenant } from './tenant.entity.js';
-import { DEFAULT_FALLBACK_MESSAGE } from './tenants.service.js';
+import { Tenant } from '../tenants/tenant.entity.js';
+import { DEFAULT_FALLBACK_MESSAGE } from '../tenants/tenants.service.js';
 
 /** 動作確認用のデモテナント。SEED_DEMO=true のとき、未登録なら作成する */
 export const DEMO_TENANT_KEY = 'pk_demo_clinic';
 
 @Injectable()
-export class TenantSeedService implements OnApplicationBootstrap {
-  private readonly logger = new Logger(TenantSeedService.name);
+export class DemoSeedService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(DemoSeedService.name);
 
   constructor(
     private readonly config: ConfigService,

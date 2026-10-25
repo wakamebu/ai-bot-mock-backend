@@ -5,7 +5,7 @@ import { DataSource } from 'typeorm';
 import { AppModule } from '../../../src/app.module.js';
 import { configureApp } from '../../../src/app.setup.js';
 import type { ChatResponse } from '../../../src/chat/chat.types.js';
-import { MockChatProvider } from '../../../src/chat/providers/mock-chat.provider.js';
+import { MockChatProvider } from '../../../src/providers/mock/mock-chat.provider.js';
 import { ScriptedChatProvider } from './scripted-chat.provider.js';
 
 interface RegisteredTenant {

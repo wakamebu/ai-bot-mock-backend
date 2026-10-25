@@ -1,8 +1,6 @@
-import type { Tenant, ProviderName } from '../../tenants/tenant.entity.js';
+import { DiscoveryService } from '@nestjs/core';
+import type { ProviderName, Tenant } from '../../tenants/tenant.entity.js';
 import type { AnswerSource } from '../chat.types.js';
-
-/** 方式の実装一覧を注入するためのトークン */
-export const CHAT_PROVIDERS = Symbol('CHAT_PROVIDERS');
 
 export interface ChatProviderInput {
   tenant: Tenant;
@@ -37,3 +35,14 @@ export interface ChatProvider {
   readonly name: ProviderName;
   generate(input: ChatProviderInput): Promise<ChatProviderResult>;
 }
+
+/**
+ * 方式の実装クラスに付けるデコレーター。
+ * 付けたクラスを含むモジュールを AppModule に import するだけで、ChatProviderRegistry に登録される。
+ *
+ * @example
+ * ＠RegisterChatProvider()
+ * ＠Injectable()
+ * export class DifyChatProvider implements ChatProvider { ... }
+ */
+export const RegisterChatProvider = DiscoveryService.createDecorator();

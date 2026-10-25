@@ -7,6 +7,8 @@ export default defineConfig({
   test: {
     globals: true,
     root: './',
-    include: ['**/*.spec.ts'],
+    include: ['src/**/*.spec.ts'],
+    // /mnt/c（WSL から Windows 側）上では Nest の初期化が遅く、既定の 5 秒を超えることがある
+    testTimeout: 15_000,
   },
 });

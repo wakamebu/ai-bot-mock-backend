@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import type {
-  ChatProvider,
-  ChatProviderInput,
-  ChatProviderResult,
-} from './chat-provider.js';
+import {
+  type ChatProvider,
+  type ChatProviderInput,
+  type ChatProviderResult,
+  RegisterChatProvider,
+} from '../../chat/providers/chat-provider.js';
 
 interface MockFaqEntry {
   keywords: string[];
@@ -15,6 +16,7 @@ interface MockFaqEntry {
  * LLM を使わない動作確認用の方式。
  * providerConfig.faq のキーワードに一致した回答を返す。一致数に応じて確信度を上げる。
  */
+@RegisterChatProvider()
 @Injectable()
 export class MockChatProvider implements ChatProvider {
   readonly name = 'mock' as const;
