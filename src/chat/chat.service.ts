@@ -99,6 +99,7 @@ export class ChatService {
       confidence: result?.confidence ?? null,
       // フォールバック時も、方式が返した根拠は調査用にログへ残す
       sources: result?.sources ?? [],
+      usage: result?.usage ?? null,
       providerRaw: result?.raw ?? null,
     });
 
