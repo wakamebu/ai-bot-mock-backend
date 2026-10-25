@@ -6,6 +6,7 @@ import { AppModule } from '../../../src/app.module.js';
 import { configureApp } from '../../../src/app.setup.js';
 import type { ChatResponse } from '../../../src/chat/chat.types.js';
 import { MockChatProvider } from '../../../src/providers/mock/mock-chat.provider.js';
+import { FakeOpenAiServer } from '../../../tools/fake-openai/server.js';
 import { ScriptedChatProvider } from './scripted-chat.provider.js';
 
 interface RegisteredTenant {
@@ -20,6 +21,8 @@ interface RegisteredTenant {
 class World {
   app!: NestExpressApplication;
   readonly provider = new ScriptedChatProvider();
+  /** 偽の OpenAI。方式が openai のテナントはここに問い合わせる */
+  readonly openai = new FakeOpenAiServer();
 
   /** 登録したテナント（名前 → ID・公開キー） */
   tenants = new Map<string, RegisteredTenant>();
@@ -33,6 +36,9 @@ class World {
   previousPublicKey: string | null = null;
 
   async start() {
+    process.env.OPENAI_BASE_URL = await this.openai.start();
+    process.env.OPENAI_API_KEY = 'test-key';
+    process.env.OPENAI_MODEL = 'gpt-5-mini';
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(MockChatProvider)
       .useValue(this.provider)
@@ -47,13 +53,17 @@ class World {
 
   async stop() {
     await this.app?.close();
+    await this.openai.stop();
   }
 
   async reset() {
     await this.app
       .get(DataSource)
-      .query('TRUNCATE messages, conversations, knowledge_documents, tenants CASCADE');
+      .query(
+        'TRUNCATE messages, conversations, knowledge_documents, tenants CASCADE',
+      );
     this.provider.reset();
+    this.openai.reset();
     this.tenants.clear();
     this.primaryTenantName = null;
     this.response = null;
