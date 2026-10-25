@@ -22,8 +22,25 @@ export interface ChatProviderResult {
   confidence: number | null;
   sources: AnswerSource[];
   providerConversationId?: string;
+  /** 利用量（費用の見積もりに使う）。方式が返せる場合だけ入れる */
+  usage?: ProviderUsage;
   /** ログ保存用の生データ */
   raw?: unknown;
+}
+
+/** 1回の回答で使った LLM・検索の量。会話ログに保存し、費用の見積もりに使う */
+export interface ProviderUsage {
+  /** 実際に使われたモデル名 */
+  model?: string;
+  inputTokens: number;
+  /** inputTokens のうち、キャッシュから読まれた分（料金が安い） */
+  cachedInputTokens?: number;
+  /** 推論（reasoning）の分を含む */
+  outputTokens: number;
+  /** 回数で課金される検索の呼び出し回数（OpenAI の file_search など） */
+  searchCalls?: number;
+  /** 方式側が計算した金額（Dify の total_price など）。USD */
+  reportedCostUsd?: number;
 }
 
 /**

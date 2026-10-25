@@ -110,6 +110,14 @@ interface ChatProvider {
     confidence: number | null;    // しきい値未満 → low_confidence。null なら判定しない
     sources: AnswerSource[];
     providerConversationId?: string;
+    usage?: {                     // 費用の見積もり用（会話ログに保存）
+      model?: string;
+      inputTokens: number;
+      cachedInputTokens?: number;
+      outputTokens: number;
+      searchCalls?: number;       // 回数で課金される検索（OpenAI の file_search）
+      reportedCostUsd?: number;   // 方式側が計算した金額（Dify の total_price）
+    };
     raw?: unknown;                // ログ保存用
   }>;
 }
@@ -157,7 +165,7 @@ interface ChatProvider {
 | --- | --- |
 | `tenants` | テナント |
 | `conversations` | 会話（テナント単位、方式側の会話IDを保持） |
-| `messages` | 発言。assistant には `status`・`fallbackReason`・`confidence`・`sources`・`providerRaw` を記録 |
+| `messages` | 発言。assistant には `status`・`fallbackReason`・`confidence`・`sources`・`usage`・`providerRaw` を記録 |
 
 フォールバックした回答でも、方式が返した根拠（`sources`）と生データ（`providerRaw`）はログに残す。
 「なぜ答えられなかったか」を後から調べ、FAQ を追加する材料にするため。

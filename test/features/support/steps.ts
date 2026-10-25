@@ -146,6 +146,13 @@ step(
   },
 );
 
+step(
+  '方式は入力 {int} トークン、出力 {int} トークンを使って回答する',
+  (_, inputTokens: number, outputTokens: number) => {
+    world.provider.willRespond({ usage: { inputTokens, outputTokens } });
+  },
+);
+
 step('方式の呼び出しが失敗する', () => {
   world.provider.willFail();
 });
@@ -274,6 +281,14 @@ step(
     expect(last.role).toBe('assistant');
     expect(last.confidence).toBeCloseTo(confidence);
     expect(last.sources.map((s) => s.title)).toContain(title);
+  },
+);
+
+step(
+  '会話ログの最後の回答には、入力 {int} トークン、出力 {int} トークンが記録されている',
+  async (_, inputTokens: number, outputTokens: number) => {
+    const last = (await conversationMessages()).at(-1)!;
+    expect(last.usage).toMatchObject({ inputTokens, outputTokens });
   },
 );
 

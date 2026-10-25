@@ -8,6 +8,7 @@ import {
   type Relation,
 } from 'typeorm';
 import type { AnswerSource, FallbackReason } from '../chat/chat.types.js';
+import type { ProviderUsage } from '../chat/providers/chat-provider.js';
 import { Conversation } from './conversation.entity.js';
 
 export type MessageRole = 'user' | 'assistant';
@@ -44,6 +45,10 @@ export class Message {
 
   @Column('jsonb', { default: [] })
   sources: AnswerSource[];
+
+  /** 方式が返した利用量（トークン数など）。費用の見積もりに使う */
+  @Column('jsonb', { nullable: true })
+  usage: ProviderUsage | null;
 
   /** 方式が返した生データ（調査用） */
   @Column('jsonb', { nullable: true })
