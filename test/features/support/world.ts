@@ -52,7 +52,7 @@ class World {
   async reset() {
     await this.app
       .get(DataSource)
-      .query('TRUNCATE messages, conversations, tenants CASCADE');
+      .query('TRUNCATE messages, conversations, knowledge_documents, tenants CASCADE');
     this.provider.reset();
     this.tenants.clear();
     this.primaryTenantName = null;

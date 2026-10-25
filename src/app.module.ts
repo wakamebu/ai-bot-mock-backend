@@ -7,6 +7,7 @@ import { ConversationsModule } from './conversations/conversations.module.js';
 import { DatabaseModule } from './database/database.module.js';
 import { DemoModule } from './demo/demo.module.js';
 import { HealthModule } from './health/health.module.js';
+import { KnowledgeModule } from './knowledge/knowledge.module.js';
 import { MockProviderModule } from './providers/mock/mock-provider.module.js';
 import { TenantsModule } from './tenants/tenants.module.js';
 
@@ -24,6 +25,7 @@ import { TenantsModule } from './tenants/tenants.module.js';
     TenantsModule,
     ConversationsModule,
     ChatModule,
+    KnowledgeModule,
     DemoModule,
     CostModule,
     // 方式（RAG の実装）。@RegisterChatProvider() で ChatModule に登録される
