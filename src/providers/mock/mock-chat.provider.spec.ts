@@ -13,6 +13,7 @@ const tenant = {
 const generate = (message: string) =>
   new MockChatProvider().generate({
     tenant,
+    conversationId: '00000000-0000-0000-0000-000000000000',
     message,
     history: [],
     providerConversationId: null,

@@ -4,6 +4,8 @@ import type { AnswerSource } from '../chat.types.js';
 
 export interface ChatProviderInput {
   tenant: Tenant;
+  /** こちらの会話ID（方式側で利用者を区別する値として使える） */
+  conversationId: string;
   message: string;
   /** 今回の発言より前の会話（古い順） */
   history: { role: 'user' | 'assistant'; content: string }[];
