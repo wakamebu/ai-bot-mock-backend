@@ -71,6 +71,7 @@ export class ChatService {
       try {
         result = await this.providers.get(tenant.provider).generate({
           tenant,
+          conversationId: conversation.id,
           message: dto.message,
           history: history.map(({ role, content }) => ({ role, content })),
           providerConversationId: conversation.providerConversationId,

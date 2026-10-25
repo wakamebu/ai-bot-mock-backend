@@ -101,6 +101,7 @@ interface ChatProvider {
   readonly name: 'mock' | 'dify' | 'openai';
   generate(input: {
     tenant: Tenant;
+    conversationId: string;       // こちらの会話ID
     message: string;
     history: { role: 'user' | 'assistant'; content: string }[];
     providerConversationId: string | null;

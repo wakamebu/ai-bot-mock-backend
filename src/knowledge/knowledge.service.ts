@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import {
   BadGatewayException,
   BadRequestException,
+  HttpException,
   Injectable,
   Logger,
   NotFoundException,
@@ -170,6 +171,8 @@ export class KnowledgeService implements OnModuleInit {
       }
       result = await store.add(tenant, file);
     } catch (error) {
+      // 保存先が設定の不備などを HttpException で返した場合は、そのまま返す
+      if (error instanceof HttpException) throw error;
       this.logger.error(`failed to add knowledge to ${store.name}`, error);
       throw new BadGatewayException(
         `failed to add knowledge to ${store.name}: ${String(error)}`,
