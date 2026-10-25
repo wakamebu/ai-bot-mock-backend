@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>費用の見積もり</title>
+    <style>
+      :root {
+        --bg: #f7f7f5;
+        --surface: #ffffff;
+        --text: #1d1d1b;
+        --muted: #6b6b66;
+        --border: #e2e2dc;
+        --accent: #2f6f62;
+        --good: #2f7a3b;
+        --bad: #b3412f;
+        --highlight: #eef5f2;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          --bg: #161615;
+          --surface: #1f1f1d;
+          --text: #ececea;
+          --muted: #a2a29b;
+          --border: #34342f;
+          --accent: #7cc3b0;
+          --good: #7fcf8a;
+          --bad: #f08a76;
+          --highlight: #23302c;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 14px/1.6 system-ui, -apple-system, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+      }
+      main { max-width: 1180px; margin: 0 auto; padding: 24px 16px 64px; }
+      h1 { font-size: 20px; margin: 0 0 4px; }
+      h2 { font-size: 15px; margin: 0 0 12px; }
+      p.lead { color: var(--muted); margin: 0 0 20px; }
+      .layout { display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start; }
+      @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+      section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+      section + section { margin-top: 16px; }
+      fieldset { border: 0; padding: 0; margin: 0 0 14px; }
+      legend { font-weight: 600; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+      label.field { display: grid; grid-template-columns: 1fr 110px; gap: 8px; align-items: center; padding: 3px 0; }
+      label.field span.note { display: block; color: var(--muted); font-size: 11px; line-height: 1.4; }
+      label.field .unit { color: var(--muted); font-size: 11px; }
+      input, select {
+        width: 100%; padding: 4px 6px; border: 1px solid var(--border); border-radius: 6px;
+        background: var(--bg); color: var(--text); font: inherit; text-align: right;
+      }
+      select { text-align: left; }
+      .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+      .row label { display: flex; gap: 6px; align-items: center; }
+      .row input[type='checkbox'] { width: auto; }
+      button {
+        border: 1px solid var(--border); background: var(--bg); color: var(--text);
+        border-radius: 6px; padding: 4px 10px; font: inherit; cursor: pointer;
+      }
+      .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+      .kpi { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+      .kpi .label { color: var(--muted); font-size: 12px; }
+      .kpi .value { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+      .table-wrap { overflow-x: auto; }
+      table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+      th, td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
+      th:first-child, td:first-child { text-align: left; }
+      th { color: var(--muted); font-weight: 600; font-size: 12px; }
+      tbody tr { cursor: pointer; }
+      tbody tr.selected { background: var(--highlight); }
+      .good { color: var(--good); }
+      .bad { color: var(--bad); }
+      .muted { color: var(--muted); }
+      .error { color: var(--bad); white-space: pre-wrap; }
+      .kind { font-size: 11px; color: var(--muted); }
+      dl.measured { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 0; }
+      dl.measured dt { color: var(--muted); }
+      dl.measured dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>費用の見積もり（たたき台）</h1>
+      <p class="lead">
+        前提の値はすべて仮置きです。左の値を変えると、テナント数ごとの月の費用と収益分岐点を計算し直します。
+        「会話ログの実測値を使う」をオンにすると、トークン数などを実際の会話ログの平均で置き換えます。
+      </p>
+      <div class="layout">
+        <div>
+          <section>
+            <div class="row">
+              <label>方式 <select id="approach"></select></label>
+              <button type="button" id="reset">既定値に戻す</button>
+            </div>
+            <div class="row">
+              <label><input type="checkbox" id="measured" /> 会話ログの実測値を使う</label>
+            </div>
+            <form id="form"></form>
+          </section>
+        </div>
+        <div>
+          <section>
+            <div class="kpis">
+              <div class="kpi"><div class="label">収益分岐点</div><div class="value" id="breakEven">-</div></div>
+              <div class="kpi"><div class="label">1回の回答あたりの変動費</div><div class="value" id="perQuery">-</div></div>
+              <div class="kpi"><div class="label">1社あたりの月額（売価）</div><div class="value" id="fee">-</div></div>
+            </div>
+            <div class="error" id="error"></div>
+            <h2>テナント数ごとの月額</h2>
+            <div class="row">
+              <label>テナント数 <input id="tenantCounts" style="width: 260px; text-align: left" value="1,3,5,10,20,30,50,100" /></label>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>テナント数</th><th>売上</th><th>費用</th><th>利益</th><th>1社あたりの費用</th></tr></thead>
+                <tbody id="scenarios"></tbody>
+              </table>
+            </div>
+          </section>
+          <section>
+            <h2 id="breakdownTitle">費用の内訳</h2>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>項目</th><th>性質</th><th>月額</th><th>割合</th></tr></thead>
+                <tbody id="breakdown"></tbody>
+              </table>
+            </div>
+          </section>
+          <section>
+            <h2>会話ログの実測値（直近30日）</h2>
+            <dl class="measured" id="usage"></dl>
+          </section>
+        </div>
+      </div>
+    </main>
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const yen = (n) => `${Math.round(n).toLocaleString('ja-JP')}円`;
+      const KIND = { fixed: '固定費', per_tenant: 'テナント数に比例', per_query: '質問数に比例' };
+      let models = [];
+      let selectedTenants = null;
+      let timer = null;
+
+      function currentModel() {
+        return models.find((m) => m.approach === $('approach').value);
+      }
+
+      function renderForm(model) {
+        const groups = new Map();
+        for (const field of model.fields) {
+          if (!groups.has(field.group)) groups.set(field.group, []);
+          groups.get(field.group).push(field);
+        }
+        $('form').innerHTML = '';
+        for (const [group, fields] of groups) {
+          const fs = document.createElement('fieldset');
+          fs.innerHTML = `<legend>${group}</legend>`;
+          for (const f of fields) {
+            const label = document.createElement('label');
+            label.className = 'field';
+            const value = model.defaults[f.key];
+            const input = f.options
+              ? `<select name="${f.key}">${f.options.map((o) => `<option ${o === value ? 'selected' : ''}>${o}</option>`).join('')}</select>`
+              : `<input name="${f.key}" type="number" step="any" min="0" value="${value}" />`;
+            label.innerHTML = `<span>${f.label}${f.unit ? ` <span class="unit">(${f.unit})</span>` : ''}${
+              f.note ? `<span class="note">${f.note}</span>` : ''
+            }</span>${input}`;
+            fs.appendChild(label);
+          }
+          $('form').appendChild(fs);
+        }
+      }
+
+      function formValues(model) {
+        const values = {};
+        for (const f of model.fields) {
+          const el = $('form').elements[f.key];
+          values[f.key] = f.options ? el.value : Number(el.value);
+        }
+        return values;
+      }
+
+      async function estimate() {
+        const model = currentModel();
+        if (!model) return;
+        const tenantCounts = $('tenantCounts').value.split(/[,\s、]+/).map(Number).filter((n) => Number.isInteger(n) && n > 0);
+        const measured = $('measured').checked;
+        const assumptions = formValues(model);
+        // 実測値を使うときは、実測で置き換える項目をフォームの値で上書きしない
+        if (measured) for (const key of ['inputTokensPerQuery', 'outputTokensPerQuery', 'cachedInputRatio', 'searchCallsPerQuery']) delete assumptions[key];
+        const res = await fetch('/admin/cost/estimate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ approach: model.approach, assumptions, useMeasuredUsage: measured, tenantCounts }),
+        });
+        const body = await res.json();
+        if (!res.ok) {
+          $('error').textContent = [].concat(body.message).join('\n');
+          return;
+        }
+        $('error').textContent = '';
+        if (measured) {
+          for (const key of ['inputTokensPerQuery', 'outputTokensPerQuery', 'cachedInputRatio', 'searchCallsPerQuery']) {
+            const el = $('form').elements[key];
+            if (el && body.assumptions[key] !== undefined) el.value = Math.round(body.assumptions[key] * 1000) / 1000;
+          }
+        }
+        render(body);
+      }
+
+      function render(est) {
+        $('breakEven').textContent = est.breakEvenTenants === null ? '到達しない' : `${est.breakEvenTenants}社`;
+        $('breakEven').className = `value ${est.breakEvenTenants === null ? 'bad' : ''}`;
+        $('perQuery').textContent = `${est.costPerQueryJpy.toLocaleString('ja-JP')}円`;
+        $('fee').textContent = yen(est.assumptions.monthlyFeePerTenantJpy);
+        if (!est.scenarios.some((s) => s.tenants === selectedTenants)) selectedTenants = est.scenarios.at(-1)?.tenants ?? null;
+        $('scenarios').innerHTML = est.scenarios
+          .map(
+            (s) => `<tr data-tenants="${s.tenants}" class="${s.tenants === selectedTenants ? 'selected' : ''}">
+              <td>${s.tenants}社</td><td>${yen(s.revenueJpy)}</td><td>${yen(s.costJpy)}</td>
+              <td class="${s.profitJpy >= 0 ? 'good' : 'bad'}">${yen(s.profitJpy)}</td><td>${yen(s.costPerTenantJpy)}</td></tr>`,
+          )
+          .join('');
+        for (const tr of $('scenarios').querySelectorAll('tr')) {
+          tr.addEventListener('click', () => {
+            selectedTenants = Number(tr.dataset.tenants);
+            render(est);
+          });
+        }
+        const s = est.scenarios.find((x) => x.tenants === selectedTenants);
+        $('breakdownTitle').textContent = s ? `費用の内訳（${s.tenants}社のとき）` : '費用の内訳';
+        $('breakdown').innerHTML = s
+          ? [...s.lines]
+              .sort((a, b) => b.jpyPerMonth - a.jpyPerMonth)
+              .map(
+                (l) => `<tr><td>${l.label}${l.note ? ` <span class="muted">${l.note}</span>` : ''}</td>
+                  <td class="kind">${KIND[l.kind]}</td><td>${yen(l.jpyPerMonth)}</td>
+                  <td>${s.costJpy > 0 ? ((l.jpyPerMonth / s.costJpy) * 100).toFixed(1) : '0.0'}%</td></tr>`,
+              )
+              .join('')
+          : '';
+      }
+
+      async function loadUsage() {
+        const u = await (await fetch('/admin/cost/usage')).json();
+        const fmt = (v, d = 0) => (v === null ? '-' : Number(v).toLocaleString('ja-JP', { maximumFractionDigits: d }));
+        const rows = [
+          ['質問', `${fmt(u.questions)}件（${fmt(u.activeTenants)}社）`],
+          ['利用量が記録された回答', `${fmt(u.answersWithUsage)}件`],
+          ['問い合わせへの案内の割合', u.fallbackRate === null ? '-' : `${(u.fallbackRate * 100).toFixed(1)}%`],
+          ['平均の入力トークン', fmt(u.avgInputTokens)],
+          ['平均の出力トークン', fmt(u.avgOutputTokens)],
+          ['平均の検索の呼び出し', fmt(u.avgSearchCalls, 2)],
+          ['方式が報告した金額', `$${fmt(u.reportedCostUsd, 4)}`],
+          ['モデル', u.models.join(', ') || '-'],
+        ];
+        $('usage').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+      }
+
+      function schedule() {
+        clearTimeout(timer);
+        timer = setTimeout(estimate, 250);
+      }
+
+      async function init() {
+        models = await (await fetch('/admin/cost/assumptions')).json();
+        if (models.length === 0) {
+          $('error').textContent = 'このブランチには見積もりモデルが登録されていません。';
+          return;
+        }
+        $('approach').innerHTML = models.map((m) => `<option value="${m.approach}">${m.label}</option>`).join('');
+        renderForm(currentModel());
+        $('approach').addEventListener('change', () => {
+          renderForm(currentModel());
+          estimate();
+        });
+        $('reset').addEventListener('click', () => {
+          $('measured').checked = false;
+          renderForm(currentModel());
+          estimate();
+        });
+        $('form').addEventListener('input', schedule);
+        $('tenantCounts').addEventListener('input', schedule);
+        $('measured').addEventListener('change', estimate);
+        await Promise.all([estimate(), loadUsage()]);
+      }
+      init();
+    </script>
+  </body>
+</html>
