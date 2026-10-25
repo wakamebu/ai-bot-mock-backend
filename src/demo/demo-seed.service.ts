@@ -12,7 +12,7 @@ import { DEFAULT_FALLBACK_MESSAGE } from '../tenants/tenants.service.js';
 
 /**
  * 動作確認用のデモテナント。SEED_DEMO=true のとき、未登録なら作成する。
- * DEMO_PROVIDER（mock / openai）でデモテナントの方式を切り替える。
+ * DEMO_PROVIDER（mock / dify）でデモテナントの方式を切り替える。
  * mock 以外では、デモの FAQ を資料として登録する（未登録の場合のみ）。
  */
 export const DEMO_TENANT_KEY = 'pk_demo_clinic';
@@ -61,7 +61,7 @@ export class DemoSeedService implements OnApplicationBootstrap {
       });
       this.logger.log(`demo knowledge registered (${DEMO_FAQ.length} items)`);
     } catch (error) {
-      // 方式側（偽の OpenAI など）が起動していなくても、アプリは起動させる
+      // 方式側（偽の Dify など）が起動していなくても、アプリは起動させる
       this.logger.warn(`failed to register demo knowledge: ${String(error)}`);
     }
   }
