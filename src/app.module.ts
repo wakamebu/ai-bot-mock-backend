@@ -9,6 +9,7 @@ import { DemoModule } from './demo/demo.module.js';
 import { HealthModule } from './health/health.module.js';
 import { KnowledgeModule } from './knowledge/knowledge.module.js';
 import { MockProviderModule } from './providers/mock/mock-provider.module.js';
+import { OpenAiProviderModule } from './providers/openai/openai-provider.module.js';
 import { TenantsModule } from './tenants/tenants.module.js';
 
 /**
@@ -30,6 +31,7 @@ import { TenantsModule } from './tenants/tenants.module.js';
     CostModule,
     // 方式（RAG の実装）。@RegisterChatProvider() で ChatModule に登録される
     MockProviderModule,
+    OpenAiProviderModule,
   ],
 })
 export class AppModule {}
