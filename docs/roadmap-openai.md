@@ -17,8 +17,8 @@ Dify のような別サーバーを持たず、1つの自前 API の中で全テ
 
 ## フェーズ 1：OpenAI を呼べるようにする
 
-- [ ] 環境変数 `OPENAI_API_KEY`・`OPENAI_MODEL` を追加する（`.env.example` に追記）
-- [ ] 公式 SDK（`openai`）を入れる
+- [x] 環境変数 `OPENAI_API_KEY`・`OPENAI_MODEL` を追加する（`.env.example` に追記）
+- [x] 公式 SDK（`openai`）を入れる
 - [ ] 開発用と本番用で OpenAI のプロジェクトと API キーを分ける
 - [ ] デモ用の資料（脱毛クリニックの FAQ・料金表など、架空のデータ）で Vector Store を手で作り、Playground などで検索結果を確かめる
 
@@ -37,14 +37,14 @@ src/providers/openai/
 └── instructions.ts            LLM への指示文の組み立て
 ```
 
-- [ ] `openai-chat.provider.ts`：`responses.create` を呼ぶ
+- [x] `openai-chat.provider.ts`：`responses.create` を呼ぶ
   - `instructions`：資料にないことは答えない、医療的な判断はしない、予約は予約ページへ案内する、日本語で答える
   - `input`：直前のやり取り（`history`）＋今回の質問
   - `tools: [{ type: 'file_search', vector_store_ids: [テナントの vectorStoreId], max_num_results: 5 }]`
   - `include: ['file_search_call.results']`（検索結果とスコアを受け取るため）
   - 出力形式を JSON スキーマで指定する：`{ answer: string, answerable: boolean }`
   - `store: false`
-- [ ] レスポンスを `ChatProviderResult` に変換する
+- [x] レスポンスを `ChatProviderResult` に変換する
 
   | ChatProviderResult | OpenAI のレスポンス |
   | --- | --- |
@@ -55,9 +55,9 @@ src/providers/openai/
   | `raw` | レスポンス全体 |
 
   検索結果の項目名（スコアなど）は、実物のレスポンスで確認してから実装する。
-- [ ] テナントごとの指示（口調、案内してよい範囲など）を足せるようにする。`providerConfig.instructions` に置くか、方式に依存しない共通の項目としてテナントに足すかを決める（後者なら main で実装してから取り込む）
-- [ ] 429（レート制限）・5xx・時間切れは SDK の再試行に任せ、それでも失敗したら例外にする（共通部分が `provider_error` で案内する）
-- [ ] デモテナントの方式を `openai` に切り替えて、`/demo.html` から動作を確かめる
+- [x] テナントごとの指示（口調、案内してよい範囲など）を足せるようにする → いったん `providerConfig.instructions` に置いた。`providerConfig.instructions` に置くか、方式に依存しない共通の項目としてテナントに足すかを決める（後者なら main で実装してから取り込む）
+- [x] 429（レート制限）・5xx・時間切れは SDK の再試行に任せ、それでも失敗したら例外にする（共通部分が `provider_error` で案内する）
+- [x] デモテナントの方式を `openai` に切り替えて、`/demo.html` から動作を確かめる
 
 **完了条件：** デモページのチャット欄から、資料にもとづく回答と根拠が表示される。資料にない質問では問い合わせへ案内される。
 
@@ -73,14 +73,14 @@ src/providers/openai/
 └── openai-knowledge.store.ts    Files と Vector Store への登録・削除
 ```
 
-- [ ] 方式が `openai` のテナントを登録したら、Vector Store を自動で作り、`providerConfig.vectorStoreId` に入れる
-- [ ] `POST /admin/tenants/:id/knowledge`（ファイルのアップロード）
+- [x] Vector Store を自動で作り、`providerConfig.vectorStoreId` に入れる（テナント登録時ではなく、最初の資料の登録時に作る。資料のないテナントは OpenAI を呼ばずに案内する）
+- [x] `POST /admin/tenants/:id/knowledge`（ファイルのアップロード）
   - OpenAI Files にアップロード → テナントの Vector Store に追加する
   - ファイルの `attributes` に題名と元の URL を入れる（回答の根拠として表示するため）
   - 取り込みは非同期なので、状態（処理中・完了・失敗）を DB に記録する
-- [ ] `GET /admin/tenants/:id/knowledge`（一覧）、`DELETE /admin/tenants/:id/knowledge/:docId`（Vector Store と Files の両方から消す）
-- [ ] FAQ は「質問と回答の1組」が1つのかたまりになるように整えてから登録する（CSV を Q&A ごとの Markdown に変換するなど）。検索の精度に直結する
-- [ ] `knowledge-store.ts` の契約は Dify 方式と共通にできるので、`src/knowledge/` は main に置いて両ブランチから使う案がある
+- [x] `GET /admin/tenants/:id/knowledge`（一覧）、`DELETE /admin/tenants/:id/knowledge/:docId`（Vector Store と Files の両方から消す）
+- [x] FAQ は「質問と回答の1組」が1つのかたまりになるように整えてから登録する（`POST .../knowledge/faq`）。（CSV を Q&A ごとの Markdown に変換するなど）。検索の精度に直結する
+- [x] `knowledge-store.ts` の契約は Dify 方式と共通にできるので、`src/knowledge/` は main に置いて両ブランチから使う案がある
 
 **完了条件：** API から資料を登録すると、その内容をもとにチャットが答えるようになる。削除すると答えなくなる。
 
@@ -88,9 +88,9 @@ src/providers/openai/
 
 本物の OpenAI は使わず、テスト用の偽 OpenAI サーバーに向けて実行する。SDK の `baseURL` を差し替えるだけで済む。
 
-- [ ] `test/features/support/fake-openai-server.ts`：`/responses`・`/files`・`/vector_stores` を受けて、シナリオで指定したレスポンスを返す。受け取ったリクエストも記録する
-- [ ] ステップを機能ごとのファイルに分ける（`test/features/support/steps/openai.steps.ts` など）
-- [ ] `features/providers/openai.feature` に書くシナリオ
+- [x] `tools/fake-openai/server.ts`（開発でも使えるよう tools/ に置いた）：`/responses`・`/files`・`/vector_stores` を受けて、シナリオで指定したレスポンスを返す。受け取ったリクエストも記録する
+- [x] ステップを機能ごとのファイルに分ける（`test/features/support/openai.steps.ts`・`knowledge.steps.ts`・`cost.steps.ts`）
+- [x] `features/providers/openai.feature` に書くシナリオ
   - 検索結果があり、モデルが答えられると判断したら、回答と根拠（資料の題名）を返す
   - 検索はテナントの Vector Store だけを対象にする（リクエストの `vector_store_ids` を確認）
   - 検索結果が0件なら `out_of_scope` で案内する
@@ -98,7 +98,7 @@ src/providers/openai/
   - 検索スコアがしきい値未満なら `low_confidence` で案内する
   - 2回目の質問では、直前のやり取りが `input` に含まれる
   - OpenAI が 429・5xx を返し続けたら `provider_error` で案内する
-- [ ] `features/knowledge.feature` に書くシナリオ
+- [x] `features/knowledge.feature` に書くシナリオ
   - 方式が `openai` のテナントを登録すると Vector Store が作られる
   - 資料を登録すると、Vector Store に追加され、一覧に表示される
   - 資料を削除すると、Vector Store と一覧から消える
@@ -115,10 +115,26 @@ src/providers/openai/
 
 ## フェーズ 6：運用
 
-- [ ] 費用の把握：モデルのトークン料金、File Search の呼び出し料金、Vector Store の保存容量の料金。最新の料金表で、1社あたり月の問い合わせ件数から見積もる
+- [x] 費用の把握：モデルのトークン料金、File Search の呼び出し料金、Vector Store の保存容量の料金。最新の料金表で、1社あたり月の問い合わせ件数から見積もる
 - [ ] OpenAI に送るデータの扱い：お客様の資料に個人情報を入れない運用ルール、OpenAI のデータ保持の設定
-- [ ] モデルの提供終了への備え（`OPENAI_MODEL` で切り替えられるようにしておく）
+- [x] モデルの提供終了への備え（`OPENAI_MODEL` で切り替えられるようにしておく）
 - [ ] `providerConfig` の値の暗号化（共通部分の課題）
+
+## 進捗（2026-10-26）
+
+偽の OpenAI（`tools/fake-openai`）を相手に、フェーズ 2〜4 とフェーズ 6 の費用の見積もりまでを実装した。
+本物の API キーがあれば `.env` の `OPENAI_BASE_URL` を空にするだけで本物に向く。
+
+| 状態 | 内容 |
+| --- | --- |
+| 済 | `src/providers/openai/`（回答・資料の保存先・費用の見積もりモデル）、`src/knowledge/`、`src/cost/`、`/cost.html` |
+| 済 | Gherkin：`features/providers/openai.feature`・`knowledge.feature`・`cost.feature` |
+| 未 | フェーズ 1：本物の API キーで動作を確かめる。検索結果の項目名（`score`・`attributes`）を実物で確認する |
+| 未 | フェーズ 5：評価用の質問セットと集計スクリプト、しきい値の調整 |
+| 未 | 資料の管理画面（いまは API のみ）、`@openai-real` タグのテスト |
+| 未 | データの扱い（個人情報、保持の設定）、`providerConfig` の暗号化 |
+
+費用の見積もりの結果と読み取れることは [cost-openai.md](cost-openai.md)。
 
 ## 未決事項
 

@@ -39,15 +39,19 @@ src/
 ├── tenants/         テナント管理（/admin/tenants）
 ├── conversations/   会話ログ（/admin/tenants/:id/conversations）
 ├── chat/            POST /chat、フォールバック判定、方式の契約（ChatProvider）と登録
-├── demo/            デモテナントの作成（SEED_DEMO=true）
+├── knowledge/       資料の登録・管理（/admin/tenants/:id/knowledge）。保存先は方式ごと
+├── cost/            費用の見積もり（/admin/cost）。見積もりモデルは方式ごと
+├── demo/            デモテナントの作成（SEED_DEMO=true、DEMO_PROVIDER で方式を切り替え）
 └── providers/       方式（RAG の実装）。@RegisterChatProvider() で chat に登録される
-    └── mock/        キーワード一致の動作確認用（dify / openai は各ブランチで追加）
-public/              チャット欄（widget.js）とデモページ
+    ├── mock/        キーワード一致の動作確認用
+    └── openai/      OpenAI File Search（回答・資料の保存先・費用の見積もりモデル）
+public/              チャット欄（widget.js）、デモページ、費用の見積もり画面（cost.html）
+tools/fake-openai/   偽の OpenAI API（開発・テスト用）
 features/            振る舞いの定義（Gherkin）
 test/features/       Gherkin のステップ実装
 ```
 
-今後の候補：`src/knowledge/`（資料の登録・管理）、`src/aio/`（AI 検索向けの対策）など。
+今後の候補：`src/aio/`（AI 検索向けの対策）など。
 
 ## セットアップ
 
@@ -102,6 +106,36 @@ curl -s localhost:3001/chat \
   -d '{"message":"予約方法を教えて"}'
 ```
 
+## OpenAI 方式で動かす（このブランチ）
+
+本物の API キーがなくても、偽の OpenAI（`tools/fake-openai`）で一通り動かせる。
+
+```bash
+# .env に追記（.env.example を参照）
+#   DEMO_PROVIDER=openai
+#   OPENAI_API_KEY=fake
+#   OPENAI_BASE_URL=http://localhost:5102/v1
+
+npm run fake:openai   # 偽の OpenAI（:5102）。状態は .fake-openai/state.json に保存
+npm run start:dev     # 別のターミナルで
+```
+
+- 起動時にデモテナントの方式が `openai` になり、デモの FAQ が資料として登録される。
+- チャット欄：http://localhost:3001/demo.html（ポートは `.env` の `PORT`）
+- 費用の見積もり：http://localhost:3001/cost.html
+- 資料の登録：
+
+```bash
+curl -s localhost:3001/admin/tenants/<tenantId>/knowledge/faq -H 'Content-Type: application/json' \
+  -d '{"title":"よくある質問","items":[{"question":"駐車場はありますか","answer":"提携駐車場が2時間無料です。"}]}'
+```
+
+本物の OpenAI を使うときは、`OPENAI_BASE_URL` を空にして `OPENAI_API_KEY` に本物のキーを入れる。
+偽の OpenAI の状態（`.fake-openai/`）を消したときは、DB も作り直す（`docker compose down -v`）。テナントに古い Vector Store の ID が残るため。
+
+- ロードマップと進捗：[docs/roadmap-openai.md](docs/roadmap-openai.md)
+- 費用の見積もり（たたき台）：[docs/cost-openai.md](docs/cost-openai.md)
+
 ## 振る舞いの定義（Gherkin）
 
 あるべき振る舞いは [`features/`](features) に Gherkin（日本語）で書く。これがそのまま受け入れテストになる。
@@ -113,9 +147,13 @@ curl -s localhost:3001/chat \
 | `conversation-log.feature` | 会話ログの記録 |
 | `tenants.feature` | テナントの登録・変更 |
 | `system.feature` | ヘルスチェック、`/auth/me`（モック） |
+| `knowledge.feature` | 資料の登録・一覧・削除 |
+| `cost.feature` | 費用の見積もり |
+| `providers/openai.feature` | OpenAI File Search 方式（偽の OpenAI を使う） |
 
-- ステップの実装は `test/features/support/steps.ts` に集約している。どの feature からも同じ文言で使える。
-- 方式は `ScriptedChatProvider` に差し替え、シナリオで指定した通りに回答させる。共通部分の振る舞いを方式に依存せず確かめるため。
+- ステップの実装は `test/features/support/` の `steps.ts`（共通）と `knowledge.steps.ts`・`cost.steps.ts`・`openai.steps.ts`。どの feature からも同じ文言で使える。
+- 方式 `mock` は `ScriptedChatProvider` に差し替え、シナリオで指定した通りに回答させる。共通部分の振る舞いを方式に依存せず確かめるため。
+- 方式 `openai` のテナントは、テスト中に起動する偽の OpenAI に問い合わせる。
 - `.feature` を `features/` に追加すれば、自動でテスト対象になる。新しい文言のステップは `steps.ts` に追加する。
 
 ## テスト
