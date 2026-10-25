@@ -145,6 +145,32 @@ interface ChatProvider {
 | GET | `/admin/tenants/:tenantId/conversations` | 会話一覧（新しい順に50件） |
 | GET | `/admin/tenants/:tenantId/conversations/:id` | 会話とメッセージ |
 
+**資料の管理**（方式が資料の保存先 `KnowledgeStore` を持つ場合のみ。`mock` は 400）
+
+| メソッド | パス | 説明 |
+| --- | --- | --- |
+| GET | `/admin/tenants/:tenantId/knowledge` | 資料の一覧（取り込み中のものは方式側の状況を確かめて更新） |
+| POST | `/admin/tenants/:tenantId/knowledge` | 文章で登録 `{ title, content, sourceUrl? }` |
+| POST | `/admin/tenants/:tenantId/knowledge/faq` | FAQ をまとめて登録 `{ title, sourceUrl?, items: [{ question, answer }] }`。1組ごとに1つの資料にする |
+| POST | `/admin/tenants/:tenantId/knowledge/upload` | ファイルで登録（multipart、項目名 `file`、任意で `title`・`sourceUrl`、20MB まで） |
+| DELETE | `/admin/tenants/:tenantId/knowledge/:id` | 方式側と一覧の両方から削除 |
+
+- 資料の状態は `processing`（取り込み中）→ `ready`（検索できる）/ `failed`。
+- 方式側の保存先（Vector Store など）は、最初の登録時に用意して `providerConfig` に記録する。
+- `title` と `sourceUrl` は回答の根拠として表示する。
+
+**費用の見積もり**（画面：`/cost.html`）
+
+| メソッド | パス | 説明 |
+| --- | --- | --- |
+| GET | `/admin/cost/assumptions` | 見積もりの前提（項目・単位・既定値）。方式ごと |
+| POST | `/admin/cost/estimate` | `{ approach?, assumptions?, useMeasuredUsage?, tenantCounts? }` → テナント数ごとの月の売上・費用・利益と内訳、収益分岐点、1回の回答あたりの変動費 |
+| GET | `/admin/cost/usage?days=30&tenantId=` | 会話ログから集計した利用量（平均トークン数、検索の回数、案内の割合など） |
+
+- 費用は「固定費」「テナント数に比例」「質問数に比例」に分けて積み上げる。収益分岐点は月の利益が 0 以上になる最小のテナント数。
+- `useMeasuredUsage: true` で、トークン数などの前提を会話ログの実測値に置き換える。
+- 前提の値は仮置き。料金の出典と確認日は `src/cost/llm-prices.ts` と方式ごとの見積もりモデルに書いている。
+
 **テナントの項目**
 
 | 項目 | 説明 |
@@ -165,6 +191,7 @@ interface ChatProvider {
 | --- | --- |
 | `tenants` | テナント |
 | `conversations` | 会話（テナント単位、方式側の会話IDを保持） |
+| `knowledge_documents` | 登録した資料（題名・元の URL・方式側の ID・状態） |
 | `messages` | 発言。assistant には `status`・`fallbackReason`・`confidence`・`sources`・`usage`・`providerRaw` を記録 |
 
 フォールバックした回答でも、方式が返した根拠（`sources`）と生データ（`providerRaw`）はログに残す。
