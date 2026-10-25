@@ -91,8 +91,10 @@ X-Widget-Key: pk_demo_clinic
 
 ## 方式の実装（ChatProvider）
 
-方式ごとの実装は `src/chat/providers/chat-provider.ts` の `ChatProvider` を実装し、
-`ChatModule` の `CHAT_PROVIDERS` に登録する。フォールバック判定とログ保存は共通処理が行う。
+方式ごとの実装は `src/providers/<方式>/` にモジュールとして置く。
+`src/chat/providers/chat-provider.ts` の `ChatProvider` を実装したクラスに `@RegisterChatProvider()` を付け、
+そのモジュールを `AppModule` に import すれば登録される（`ChatModule` の変更は不要）。
+フォールバック判定とログ保存は共通処理が行う。
 
 ```ts
 interface ChatProvider {

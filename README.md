@@ -17,12 +17,37 @@ AI ボット（Dify / OpenAI）モックのバックエンド。NestJS + Postgre
 | `dify-develop` | Dify 方式（テナントごとの Dify インスタンスを API で呼ぶ） |
 | `openai-develop` | OpenAI File Search 方式（テナントごとの Vector Store） |
 
+各方式の今後の作業は、それぞれのブランチの `docs/roadmap-dify.md` / `docs/roadmap-openai.md` にまとめている。
+
 > **モックのため認証・認可は未実装。** `GET /auth/me` は中身のない雛形で、`/admin/*` も認証なしで呼べる。
 
 ## ドキュメント
 
 - [API 仕様](docs/api.md)
-- [工数記録](docs/effort-log.md)
+
+## ディレクトリ構成
+
+機能ごとにディレクトリを分け、それぞれを Nest のモジュールとして `src/app.module.ts` に積み上げる。
+機能を足すときは `src/<機能>/<機能>.module.ts` を作って `AppModule` に import する。
+
+```
+src/
+├── main.ts / app.module.ts / app.setup.ts
+├── database/        PostgreSQL 接続（TypeORM）
+├── health/          GET /health
+├── auth/            GET /auth/me（モックのため中身なし）
+├── tenants/         テナント管理（/admin/tenants）
+├── conversations/   会話ログ（/admin/tenants/:id/conversations）
+├── chat/            POST /chat、フォールバック判定、方式の契約（ChatProvider）と登録
+├── demo/            デモテナントの作成（SEED_DEMO=true）
+└── providers/       方式（RAG の実装）。@RegisterChatProvider() で chat に登録される
+    └── mock/        キーワード一致の動作確認用（dify / openai は各ブランチで追加）
+public/              チャット欄（widget.js）とデモページ
+features/            振る舞いの定義（Gherkin）
+test/features/       Gherkin のステップ実装
+```
+
+今後の候補：`src/knowledge/`（資料の登録・管理）、`src/aio/`（AI 検索向けの対策）など。
 
 ## セットアップ
 
