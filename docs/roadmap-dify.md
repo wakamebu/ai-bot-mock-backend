@@ -40,12 +40,12 @@ src/providers/dify/
 └── dify-config.ts           providerConfig の型と検証
 ```
 
-- [ ] `dify.client.ts`：`POST {baseUrl}/v1/chat-messages`
+- [x] `dify.client.ts`：`POST {baseUrl}/v1/chat-messages`
   - `Authorization: Bearer {apiKey}`、`response_mode: 'blocking'`、`query`、`inputs: {}`
   - `user` には自前の会話ID を渡す（Dify 側で利用者を区別するための値）
   - `conversation_id` は2回目以降だけ渡す
   - タイムアウトを付ける（`AbortSignal.timeout`）
-- [ ] `dify-chat.provider.ts`：Dify のレスポンスを `ChatProviderResult` に変換する
+- [x] `dify-chat.provider.ts`：Dify のレスポンスを `ChatProviderResult` に変換する
 
   | ChatProviderResult | Dify のレスポンス |
   | --- | --- |
@@ -57,10 +57,10 @@ src/providers/dify/
   | `raw` | レスポンス全体 |
 
   `retriever_resources` の項目は Dify のバージョンで変わりうるので、実物のレスポンスで確認してから実装する。
-- [ ] Dify 側で会話が見つからない場合（期限切れなど）は、`conversation_id` なしで1回だけやり直す
-- [ ] `providerConfig` の形を決めて検証する：`{ baseUrl, apiKey }`
+- [x] Dify 側で会話が見つからない場合（期限切れなど）は、`conversation_id` なしで1回だけやり直す
+- [x] `providerConfig` の形を決めて検証する：`{ baseUrl, apiKey, datasetId?, datasetApiKey? }`（テナント登録時の検証は未。共通部分の課題）
   - 共通部分の改善として、`ChatProvider` に「設定を検証する」メソッドを足し、テナント登録・更新時に方式ごとに検証する案がある（main で実装してから取り込む）
-- [ ] デモテナントの方式を `dify` に切り替えて、`/demo.html` から動作を確かめる
+- [x] デモテナントの方式を `dify` に切り替えて、`/demo.html` から動作を確かめる
 
 **完了条件：** デモページのチャット欄から、Dify の回答と根拠が表示される。答えられない質問では問い合わせへ案内される。
 
@@ -68,9 +68,9 @@ src/providers/dify/
 
 本物の Dify は使わず、テスト用の偽 Dify サーバー（`node:http` で立てる）に向けて実行する。
 
-- [ ] `test/features/support/fake-dify-server.ts`：`/v1/chat-messages` を受けて、シナリオで指定したレスポンスを返す。受け取ったリクエストも記録する
-- [ ] ステップを機能ごとのファイルに分ける（`test/features/support/steps/dify.steps.ts` など）
-- [ ] `features/providers/dify.feature` に書くシナリオ
+- [x] `tools/fake-dify/server.ts`（開発でも使えるよう tools/ に置いた。1プロセスでテナントごとのインスタンスを模擬）：`/v1/chat-messages` を受けて、シナリオで指定したレスポンスを返す。受け取ったリクエストも記録する
+- [x] ステップを機能ごとのファイルに分ける（`test/features/support/dify.steps.ts`・`knowledge.steps.ts`・`cost.steps.ts`）
+- [x] `features/providers/dify.feature` に書くシナリオ
   - 根拠つきで回答されたら、回答と根拠（資料名）を返す
   - 検索結果が0件なら `out_of_scope` で案内する
   - 目印（`[[NO_ANSWER]]`）が返ったら `out_of_scope` で案内する
@@ -87,11 +87,11 @@ src/providers/dify/
 
 最初は Dify の画面で登録すれば足りる。お客様の資料が多い、更新が頻繁、という場合に進める。
 
-- [ ] `POST /admin/tenants/:id/knowledge`（ファイルのアップロード）→ Dify の `POST /v1/datasets/{dataset_id}/document/create-by-file` に転送する
+- [x] `POST /admin/tenants/:id/knowledge`（ファイルのアップロード）→ Dify の `POST /v1/datasets/{dataset_id}/document/create-by-file` に転送する
   - データセット用の API キーは、チャット用のアプリの API キーとは別。`providerConfig` に `datasetId`・`datasetApiKey` を足す
   - 登録は非同期。返ってきた `batch` で、インデックス作成の状況を確認する API を呼んで完了を待つ
-- [ ] 資料の一覧・削除
-- [ ] OpenAI 方式と同じ形の API にしておく。共通の `src/knowledge/` モジュールを main に作り、方式ごとの実装を差し込めるようにする案がある
+- [x] 資料の一覧・削除
+- [x] OpenAI 方式と同じ形の API にしておく。共通の `src/knowledge/` モジュールを main に作り、方式ごとの実装を差し込めるようにする案がある
 
 ## フェーズ 5：テナントごとに Dify を立てる運用
 
@@ -103,6 +103,22 @@ src/providers/dify/
 - [ ] Dify のバージョンアップ手順。リリースが頻繁なので、全テナントの Dify を順に上げる手順と、上げた後に動作を確かめる手順が必要
 - [ ] テナントごとの Dify のバックアップ（DB とベクトル DB）
 - [ ] `providerConfig` の API キーの暗号化（共通部分の課題）
+
+## 進捗（2026-10-26）
+
+偽の Dify（`tools/fake-dify`）を相手に、フェーズ 2〜4 と、フェーズ 5 のうち「テナントごとに Dify を用意する」流れ（モック）・費用の見積もりまでを実装した。
+本物の Dify を立てれば、テナントの `providerConfig` に接続先と API キーを入れるだけで本物に向く。
+
+| 状態 | 内容 |
+| --- | --- |
+| 済 | `src/providers/dify/`（回答・資料の保存先・インスタンスの用意・費用の見積もりモデル）、`src/knowledge/`、`src/cost/`、`/cost.html` |
+| 済 | Gherkin：`features/providers/dify.feature`・`knowledge.feature`・`cost.feature` |
+| 済（モック） | テナントの Dify の用意：最初の資料の登録時に `DifyProvisioner` が偽の Dify にインスタンスを作り、接続先を `providerConfig` に記録する |
+| 未 | フェーズ 1：本物の Dify を立て、チャットフローを作って DSL を書き出す。`retriever_resources`・ドキュメントの詳細 API（`GET /v1/datasets/{id}/documents/{document_id}`）の項目を実物で確認する |
+| 未 | フェーズ 5：本物のインスタンスを立てる手順の自動化（`DifyProvisioner` の本番の実装。時間がかかるのでジョブにする）、バージョンアップ・バックアップ |
+| 未 | `@dify-real` タグのテスト、`providerConfig` の暗号化 |
+
+費用の見積もりの結果と OpenAI 方式との比較は [cost-dify.md](cost-dify.md)。
 
 ## 未決事項
 

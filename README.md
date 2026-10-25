@@ -39,15 +39,19 @@ src/
 ├── tenants/         テナント管理（/admin/tenants）
 ├── conversations/   会話ログ（/admin/tenants/:id/conversations）
 ├── chat/            POST /chat、フォールバック判定、方式の契約（ChatProvider）と登録
-├── demo/            デモテナントの作成（SEED_DEMO=true）
+├── knowledge/       資料の登録・管理（/admin/tenants/:id/knowledge）。保存先は方式ごと
+├── cost/            費用の見積もり（/admin/cost）。見積もりモデルは方式ごと
+├── demo/            デモテナントの作成（SEED_DEMO=true、DEMO_PROVIDER で方式を切り替え）
 └── providers/       方式（RAG の実装）。@RegisterChatProvider() で chat に登録される
-    └── mock/        キーワード一致の動作確認用（dify / openai は各ブランチで追加）
-public/              チャット欄（widget.js）とデモページ
+    ├── mock/        キーワード一致の動作確認用
+    └── dify/        Dify（回答・資料の保存先・インスタンスの用意・費用の見積もりモデル）
+public/              チャット欄（widget.js）、デモページ、費用の見積もり画面（cost.html）
+tools/fake-dify/     偽の Dify（開発・テスト用。テナントごとのインスタンスを模擬）
 features/            振る舞いの定義（Gherkin）
 test/features/       Gherkin のステップ実装
 ```
 
-今後の候補：`src/knowledge/`（資料の登録・管理）、`src/aio/`（AI 検索向けの対策）など。
+今後の候補：`src/aio/`（AI 検索向けの対策）など。
 
 ## セットアップ
 
@@ -102,6 +106,29 @@ curl -s localhost:3001/chat \
   -d '{"message":"予約方法を教えて"}'
 ```
 
+## Dify 方式で動かす（このブランチ）
+
+本物の Dify がなくても、偽の Dify（`tools/fake-dify`）で一通り動かせる。
+
+```bash
+# .env に追記（.env.example を参照）
+#   DEMO_PROVIDER=dify
+#   DIFY_PROVISIONER_URL=http://localhost:5101
+
+npm run fake:dify     # 偽の Dify（:5101）。状態は .fake-dify/state.json に保存
+npm run start:dev     # 別のターミナルで
+```
+
+- 起動時にデモテナントの方式が `dify` になり、テナント用の Dify（偽物）が用意され、デモの FAQ が資料として登録される。
+- チャット欄：http://localhost:3001/demo.html（ポートは `.env` の `PORT`）
+- 費用の見積もり：http://localhost:3001/cost.html
+- 本物の Dify を使うときは、テナントの `providerConfig` に `baseUrl`・`apiKey`（チャットフローのアプリ）・`datasetId`・`datasetApiKey`（ナレッジ）を入れる。
+
+偽の Dify の状態（`.fake-dify/`）を消したときは、DB も作り直す（`docker compose down -v`）。テナントに古い接続先が残るため。
+
+- ロードマップと進捗：[docs/roadmap-dify.md](docs/roadmap-dify.md)
+- 費用の見積もり（たたき台）と OpenAI 方式との比較：[docs/cost-dify.md](docs/cost-dify.md)
+
 ## 振る舞いの定義（Gherkin）
 
 あるべき振る舞いは [`features/`](features) に Gherkin（日本語）で書く。これがそのまま受け入れテストになる。
@@ -113,9 +140,13 @@ curl -s localhost:3001/chat \
 | `conversation-log.feature` | 会話ログの記録 |
 | `tenants.feature` | テナントの登録・変更 |
 | `system.feature` | ヘルスチェック、`/auth/me`（モック） |
+| `knowledge.feature` | 資料の登録・一覧・削除 |
+| `cost.feature` | 費用の見積もり |
+| `providers/dify.feature` | Dify 方式（偽の Dify を使う） |
 
-- ステップの実装は `test/features/support/steps.ts` に集約している。どの feature からも同じ文言で使える。
-- 方式は `ScriptedChatProvider` に差し替え、シナリオで指定した通りに回答させる。共通部分の振る舞いを方式に依存せず確かめるため。
+- ステップの実装は `test/features/support/` の `steps.ts`（共通）と `knowledge.steps.ts`・`cost.steps.ts`・`dify.steps.ts`。どの feature からも同じ文言で使える。
+- 方式 `mock` は `ScriptedChatProvider` に差し替え、シナリオで指定した通りに回答させる。共通部分の振る舞いを方式に依存せず確かめるため。
+- 方式 `dify` のテナントは、テスト中に起動する偽の Dify に問い合わせる。
 - `.feature` を `features/` に追加すれば、自動でテスト対象になる。新しい文言のステップは `steps.ts` に追加する。
 
 ## テスト
