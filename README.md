@@ -77,8 +77,28 @@ curl -s localhost:3001/chat \
   -d '{"message":"予約方法を教えて"}'
 ```
 
+## 振る舞いの定義（Gherkin）
+
+あるべき振る舞いは [`features/`](features) に Gherkin（日本語）で書く。これがそのまま受け入れテストになる。
+
+| ファイル | 内容 |
+| --- | --- |
+| `chat.feature` | 回答とフォールバック（範囲外・確信度不足・要注意トピック・方式の障害） |
+| `widget-access.feature` | 公開キー・許可オリジンによる利用制限、入力の制限 |
+| `conversation-log.feature` | 会話ログの記録 |
+| `tenants.feature` | テナントの登録・変更 |
+| `system.feature` | ヘルスチェック、`/auth/me`（モック） |
+
+- ステップの実装は `test/features/support/steps.ts` に集約している。どの feature からも同じ文言で使える。
+- 方式は `ScriptedChatProvider` に差し替え、シナリオで指定した通りに回答させる。共通部分の振る舞いを方式に依存せず確かめるため。
+- `.feature` を `features/` に追加すれば、自動でテスト対象になる。新しい文言のステップは `steps.ts` に追加する。
+
 ## テスト
 
 ```bash
-npm test
+npm test             # ユニットテスト（src/**/*.spec.ts）
+npm run test:e2e     # 受け入れテスト（features/*.feature）
 ```
+
+受け入れテストは DB を使う。`docker compose up -d db` で起動しておくこと。
+開発用とは別のデータベース `aibot_test` を自動で作り、シナリオごとに中身を空にする。
