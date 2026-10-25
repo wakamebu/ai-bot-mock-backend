@@ -6,6 +6,7 @@ import { AppModule } from '../../../src/app.module.js';
 import { configureApp } from '../../../src/app.setup.js';
 import type { ChatResponse } from '../../../src/chat/chat.types.js';
 import { MockChatProvider } from '../../../src/providers/mock/mock-chat.provider.js';
+import { FakeDifyServer } from '../../../tools/fake-dify/server.js';
 import { ScriptedChatProvider } from './scripted-chat.provider.js';
 
 interface RegisteredTenant {
@@ -20,6 +21,8 @@ interface RegisteredTenant {
 class World {
   app!: NestExpressApplication;
   readonly provider = new ScriptedChatProvider();
+  /** 偽の Dify。方式が dify のテナントは、ここに用意したインスタンスに問い合わせる */
+  readonly dify = new FakeDifyServer();
 
   /** 登録したテナント（名前 → ID・公開キー） */
   tenants = new Map<string, RegisteredTenant>();
@@ -33,6 +36,9 @@ class World {
   previousPublicKey: string | null = null;
 
   async start() {
+    process.env.DIFY_PROVISIONER_URL = await this.dify.start();
+    // 時間切れのシナリオを短く済ませる
+    process.env.DIFY_TIMEOUT_MS = '1000';
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(MockChatProvider)
       .useValue(this.provider)
@@ -47,6 +53,7 @@ class World {
 
   async stop() {
     await this.app?.close();
+    await this.dify.stop();
   }
 
   async reset() {
@@ -54,6 +61,7 @@ class World {
       .get(DataSource)
       .query('TRUNCATE messages, conversations, knowledge_documents, tenants CASCADE');
     this.provider.reset();
+    this.dify.reset();
     this.tenants.clear();
     this.primaryTenantName = null;
     this.response = null;

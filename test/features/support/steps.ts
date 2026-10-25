@@ -4,7 +4,7 @@ import type { Message } from '../../../src/conversations/message.entity.js';
 import { DEFAULT_FALLBACK_MESSAGE } from '../../../src/tenants/tenants.service.js';
 import { world } from './world.js';
 
-type Row = Record<string, string>;
+export type Row = Record<string, string>;
 type StepFn = (ctx: unknown, ...params: any[]) => unknown;
 
 /**
@@ -12,7 +12,7 @@ type StepFn = (ctx: unknown, ...params: any[]) => unknown;
  * 「前提 / もし / ならば / かつ / しかし」のどれで書かれても同じステップとして扱う。
  * （vitest-cucumber の汎用 Step はシナリオアウトラインで一致しないため、キーワードごとに登録する）
  */
-function step(pattern: string, fn: StepFn) {
+export function step(pattern: string, fn: StepFn) {
   defineSteps((keywords) => {
     for (const keyword of ['Given', 'When', 'Then', 'And', 'But'] as const) {
       keywords[keyword](pattern, async (ctx: unknown, ...params: unknown[]) => {
@@ -37,7 +37,7 @@ async function givenTenantUpdated(body: Record<string, unknown>) {
   expect(res.status).toBe(200);
 }
 
-async function conversationMessages(): Promise<Message[]> {
+export async function conversationMessages(): Promise<Message[]> {
   const { conversationId } = world.lastChat;
   const res = await world
     .http()
@@ -48,15 +48,27 @@ async function conversationMessages(): Promise<Message[]> {
 
 // ---------------------------------------------------------------- テナント
 
-step('テナント {string} が登録されている', async (_, name: string) => {
+async function registerTenant(
+  name: string,
+  body: Record<string, unknown> = {},
+) {
   const res = await world
     .http()
     .post('/admin/tenants')
-    .send({ slug: `tenant-${++slugSequence}`, name });
-  expect(res.status).toBe(201);
+    .send({ slug: `tenant-${++slugSequence}`, name, ...body });
+  expect(res.status, JSON.stringify(res.body)).toBe(201);
   world.tenants.set(name, { id: res.body.id, publicKey: res.body.publicKey });
   world.primaryTenantName ??= name;
-});
+}
+
+step('テナント {string} が登録されている', (_, name: string) =>
+  registerTenant(name),
+);
+
+step(
+  '方式が {string} のテナント {string} が登録されている',
+  (_, provider: string, name: string) => registerTenant(name, { provider }),
+);
 
 step(
   'スラッグ {string} 、名前 {string} でテナントを登録する',
@@ -247,6 +259,15 @@ step('回答は {string} である', (_, answer: string) => {
 step('根拠として {string} が示される', (_, title: string) => {
   expect(world.lastChat.sources.map((s) => s.title)).toContain(title);
 });
+
+step(
+  '根拠として {string} が {string} へのリンクで示される',
+  (_, title: string, url: string) => {
+    expect(world.lastChat.sources).toContainEqual(
+      expect.objectContaining({ title, url }),
+    );
+  },
+);
 
 step('根拠は示されない', () => {
   expect(world.lastChat.sources).toEqual([]);

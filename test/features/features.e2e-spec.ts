@@ -3,6 +3,9 @@ import { join } from 'node:path';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { afterAll, beforeAll } from 'vitest';
 import './support/steps.js';
+import './support/knowledge.steps.js';
+import './support/cost.steps.js';
+import './support/dify.steps.js';
 import { world } from './support/world.js';
 
 /**
